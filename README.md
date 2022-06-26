@@ -2,5 +2,5 @@
 This is a all events assignement backend repo
 
 ### steps to recreate project
-- Change baseUrl with your api url in main.js file
-- run index.html file
+- run ```npm install```
+- change db credentials inside routes/index.js file
