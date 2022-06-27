@@ -25,8 +25,6 @@ router.post('/syncData', async (req, res) => {
     // read file using csvtojson
     let jsonData = await csvToJson.fromFile(__dirname + '/../files/backend_task_sample_data.csv')
 
-    // jsonData = jsonData.filter(el => isDataValid(el));
-
     // get all keys to create table accordingly
     const tableRowNames = Object.keys(jsonData[0]);
     try {
@@ -44,7 +42,7 @@ router.post('/syncData', async (req, res) => {
             ${tableRowNames[7]} VARCHAR(64),
             ${tableRowNames[8]} TEXT,
             ${tableRowNames[9]} VARCHAR(512),
-            ${tableRowNames[10]} VARCHAR(8),
+            ${tableRowNames[10]} FLOAT(8),
             ${tableRowNames[11]} VARCHAR(512),
             PRIMARY KEY (id)
         );
@@ -72,18 +70,31 @@ router.post('/syncData', async (req, res) => {
 
 router.get('/getEvents', async (req, res) => {
     try {
-        let data = await conn.query(`SELECT * FROM events_data ORDER BY score DESC`)
-        data = data[0];
-        let obj1 = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
-        const days = { "0": "Sunday", "1": "Monday", "2": "Tuesday", "3": "Wednesday", "4": "Thursday", "5": "Friday", "6": "Saturday", }
-        for (let i = 0; i < data.length; i++) {
-            let dayOfEvent = (new Date(data[i].start_time)).getDay(); // sunday-saturday => 0-6
-            if (obj1[dayOfEvent].length < 4) {
-                let tempObj = { eventname: data[i].eventname, banner_url: data[i].banner_url, day: days[dayOfEvent] }
-                obj1[dayOfEvent].push(tempObj);
-            }
+        let data = await conn.query(`
+                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 1 ORDER BY score DESC LIMIT 4)
+                    UNION
+                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 2 ORDER BY score DESC LIMIT 4)
+                    UNION
+                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 3 ORDER BY score DESC LIMIT 4)
+                    UNION
+                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 4 ORDER BY score DESC LIMIT 4)
+                    UNION
+                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 5 ORDER BY score DESC LIMIT 4)
+                    UNION
+                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 6 ORDER BY score DESC LIMIT 4)
+                    UNION
+                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 7 ORDER BY score DESC LIMIT 4);
+        `)
+        let obj = {
+            "Sunday": data[0].slice(0, 4),
+            "Monday": data[0].slice(4, 8),
+            "Tuesday": data[0].slice(8, 12),
+            "Wednesday": data[0].slice(12, 16),
+            "Thursday": data[0].slice(16, 20),
+            "Friday": data[0].slice(20, 24),
+            "Saturday": data[0].slice(24, 28),
         }
-        res.json(obj1);
+        res.json(obj);
     } catch (e) {
         console.log(e)
     }
