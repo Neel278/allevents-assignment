@@ -70,29 +70,22 @@ router.post('/syncData', async (req, res) => {
 
 router.get('/getEvents', async (req, res) => {
     try {
+        // For older version of mysql
         let data = await conn.query(`
-                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 1 ORDER BY score DESC LIMIT 4)
-                    UNION
-                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 2 ORDER BY score DESC LIMIT 4)
-                    UNION
-                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 3 ORDER BY score DESC LIMIT 4)
-                    UNION
-                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 4 ORDER BY score DESC LIMIT 4)
-                    UNION
-                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 5 ORDER BY score DESC LIMIT 4)
-                    UNION
-                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 6 ORDER BY score DESC LIMIT 4)
-                    UNION
-                    (SELECT id,eventname,banner_url FROM events_data WHERE DAYOFWEEK(start_time) = 7 ORDER BY score DESC LIMIT 4);
+        (SELECT id,eventname,banner_url FROM events_data WHERE (DATE(start_time) >= CURDATE() AND DATE(start_time) <= CURDATE()+7) AND (DAYOFWEEK(start_time) = 1) ORDER BY score DESC LIMIT 4)
+        UNION 
+        (SELECT id,eventname,banner_url FROM events_data WHERE (DATE(start_time) >= CURDATE() AND DATE(start_time) <= CURDATE()+7) AND (DAYOFWEEK(start_time) = 6) ORDER BY score DESC LIMIT 4)
+        UNION 
+        (SELECT id,eventname,banner_url FROM events_data WHERE (DATE(start_time) >= CURDATE() AND DATE(start_time) <= CURDATE()+7) AND (DAYOFWEEK(start_time) = 7) ORDER BY score DESC LIMIT 4)
         `)
+        // Note:- You can use below query for newer version of mysql
+        // let data = await conn.query(`
+        //             SELECT id,eventname,banner_url FROM (SELECT *,ROW_NUMBER() OVER (PARTITION BY DAYOFWEEK(start_time) ORDER BY DAYOFWEEK(start_time),score DESC) AS RN FROM events_data WHERE DAYOFWEEK(start_time) IN (1,6,7) AND (start_time BETWEEN CURDATE() AND CURDATE()+7)) sub WHERE RN <= CASE DAYOFWEEK(start_time) WHEN 1 THEN 4 WHEN 6 THEN 4 WHEN 7 THEN 4 END
+        // `)
         let obj = {
             "Sunday": data[0].slice(0, 4),
-            "Monday": data[0].slice(4, 8),
-            "Tuesday": data[0].slice(8, 12),
-            "Wednesday": data[0].slice(12, 16),
-            "Thursday": data[0].slice(16, 20),
-            "Friday": data[0].slice(20, 24),
-            "Saturday": data[0].slice(24, 28),
+            "Friday": data[0].slice(4, 8),
+            "Saturday": data[0].slice(8, 12),
         }
         res.json(obj);
     } catch (e) {
