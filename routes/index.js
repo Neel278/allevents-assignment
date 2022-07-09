@@ -150,36 +150,51 @@ router.get("/getEventsCount", async (req, res) => {
             // for (let key of splitData) {
             //     if (data[i].description.includes(key)) ans.push(key);
             // }
-            let splitData = data[i].eventname.split(
-                /^[a-zA-Z0-9]+\s[a-zA-Z0-9]+$/
-            );
-            for (let key of splitData) {
+            let splitDataWithOneSpace = data[i].eventname.split(/(.*?\s){3}/g);
+            for (let key of splitDataWithOneSpace) {
                 if (data[i].description.includes(key)) ans.push(key);
             }
         }
 
         for (let i = 0; i < ans.length; i++) {
-            if (!/^[A-Za-z0-9]+/g.test(ans[i])) {
+            if (!/^[A-Z]{1}[A-Za-z ]{3,}$/g.test(ans[i])) {
                 ans[i] = null;
             }
         }
         let obj = {};
         for (let key of ans) {
-            if (key != null || key != "") {
-                if (obj[key] == null) obj[key] = 1;
-                obj[key] = ++obj[key];
+            if (key != null || key?.trim() != "") {
+                if (obj[key?.trim()] == null) obj[key?.trim()] = 1;
+                obj[key?.trim()] = ++obj[key?.trim()];
             }
         }
         delete obj["null"];
+        delete obj["undefined"];
         // for (let key of Object.keys(obj)) {
         //     if (obj[key] < 10) {
         //         delete obj[key];
         //     }
         // }
+        obj = sortObject(obj);
         res.send(obj);
     } catch (e) {
         console.error(e);
     }
 });
+
+function sortObject(obj) {
+    let sortable = [];
+    for (var key in obj) {
+        sortable.push([key, obj[key]]);
+    }
+    sortable.sort(function (a, b) {
+        return b[1] - a[1];
+    });
+    let objSorted = {};
+    sortable.forEach(function (item) {
+        objSorted[item[0]] = item[1];
+    });
+    return objSorted;
+}
 
 module.exports = router;
